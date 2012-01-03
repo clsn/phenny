@@ -43,7 +43,7 @@ def service(phenny, input, command, args):
    lines = bytes.splitlines()
    if not lines: 
       return phenny.reply("Sorry, the service didn't respond any output.")
-   phenny.say(lines[0][:350])
+   phenny.reply(lines[0][:350])
 
 def refresh(phenny): 
    if hasattr(phenny.config, 'services'): 
