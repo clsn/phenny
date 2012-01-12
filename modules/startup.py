@@ -7,55 +7,50 @@ Licensed under the Eiffel Forum License 2.
 http://inamidst.com/phenny/
 """
 
-import threading
+import threading, time
 
-def setup(phenny):
+def setup(phenny): 
+   # by clsn
+   phenny.data = {}
+   refresh_delay = 300.0
+
    if hasattr(phenny.config, 'refresh_delay'):
-      # Ping repeatedly to make sure we're still connected, and if
-      # not, disconnect and wait to be restarted.
-      refresh_delay=300.0
-      try:
-         refresh_delay=float(phenny.config.refresh_delay)
-      except:
-         pass
+      try: refresh_delay = float(phenny.config.refresh_delay)
+      except: pass
+
+   def close():
+      print "Nobody PONGed our PING, restarting"
+      phenny.handle_close()
       
-      def pingloop():
-         phenny.internals['phennydeath']=threading.Timer(refresh_delay,killme,())
-         phenny.internals['phennydeath'].start()
-         print "\tsending ping"
-         phenny.write(('PING', phenny.config.host))
+   def pingloop():
+      timer = threading.Timer(refresh_delay, close, ())
+      phenny.data['startup.setup.timer'] = timer
+      phenny.data['startup.setup.timer'].start()
+      # print "PING!"
+      phenny.write(('PING', phenny.config.host))
+   phenny.data['startup.setup.pingloop'] = pingloop
 
-      phenny.internals['pingloop']=pingloop
+   def pong(phenny, input):
+      try:
+         # print "PONG!"
+         phenny.data['startup.setup.timer'].cancel()
+         time.sleep(refresh_delay + 60.0)
+         pingloop()
+      except: pass
+   pong.event = 'PONG'
+   pong.thread = True
+   pong.rule = r'.*'
+   phenny.variables['pong'] = pong
 
-      def killme():
-         # can we restart from scratch this way?
-         print "RESTARTING PHENNY."
-         phenny.handle_close()
-         # Then the Watcher should restart, yes?
+   # Need to wrap handle_connect to start the loop.
+   inner_handle_connect = phenny.handle_connect
 
-      import time
-      def pong(phen, inp):
-         print "Been ponged"
-         try:
-            phenny.internals['phennydeath'].cancel()
-            time.sleep(refresh_delay+60.0)
-            pingloop()
-         except:
-            pass
-      pong.event='PONG'
-      pong.priority='high'
-      pong.thread=True
-      pong.rule=r'.*'
-      phenny.variables['pong']=pong
+   def outer_handle_connect():
+      inner_handle_connect()
+      if phenny.data.get('startup.setup.pingloop'):
+         phenny.data['startup.setup.pingloop']()
 
-      # Need to wrap handle_connect to start the loop.
-      hc=phenny.handle_connect
-      def new_hc():
-         hc()
-         if hasattr(phenny,'internals') and phenny.internals.get('pingloop'):
-            phenny.internals['pingloop']()
-      phenny.handle_connect=new_hc
-
+   phenny.handle_connect = outer_handle_connect
 
 def startup(phenny, input): 
    if hasattr(phenny.config, 'serverpass'): 
