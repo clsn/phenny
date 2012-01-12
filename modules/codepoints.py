@@ -74,6 +74,10 @@ def u(phenny, input):
       if len(arg) > 1: return phenny.reply('%s SPACEs (U+0020)' % len(arg))
       return phenny.reply('1 SPACE (U+0020)')
 
+   # Request from timotimo:
+   if arg.strip() == 'm':
+      return phenny.say("U+006D LATIN SMALL LIGATURE RN (m)")
+
    # @@ space
    if set(arg.upper()) - set(
       'ABCDEFGHIJKLMNOPQRSTUVWYXYZ0123456789- .?+*{}[]\\/^$'): 
