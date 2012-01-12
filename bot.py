@@ -71,50 +71,6 @@ class Phenny(irc.Bot):
          print >> sys.stderr, 'Registered modules:', ', '.join(modules)
       else: print >> sys.stderr, "Warning: Couldn't find any modules"
 
-      if hasattr(self.config, 'refresh_delay'):
-         # Ping repeatedly to make sure we're still connected, and if
-         # not, disconnect and wait to be restarted.
-         # I haven't gotten this to test properly yet.  I tended to have
-         # a problem that phenny would sort of hang after a long idle,
-         # and this was supposed to correct that.  But now I'm not getting
-         # the hanging problem, so this hasn't been triggered to check
-         # if it works.  It's probably the pings.  --clsn
-         refresh_delay=300.0
-         try:
-            refresh_delay=float(self.config.refresh_delay)
-         except:
-            pass
-
-         def pingloop():
-            self.internals['phennydeath']=threading.Timer(refresh_delay,killme,())
-            # Should be in its own member, really.
-            self.internals['phennydeath'].start()
-            print "\tsending ping"
-            self.write(('PING', self.config.host))
-
-         self.internals['pingloop']=pingloop
-
-         def killme():
-            # can we restart from scratch this way?
-            print "RESTARTING PHENNY."
-            self.handle_close()
-            # Then the Watcher should restart, yes?
-
-         import time
-         def pong(phen, inp):
-            print "Been ponged"
-            try:
-               self.internals['phennydeath'].cancel()
-               time.sleep(refresh_delay+60.0)
-               pingloop()
-            except:
-               pass
-         pong.event='PONG'
-         pong.priority='high'
-         pong.thread=True
-         pong.rule=r'.*'
-         self.variables['pong']=pong
-
       self.bind_commands()
 
    def register(self, variables): 

@@ -88,8 +88,6 @@ class Bot(asynchat.async_chat):
          self.write(('PASS', self.password))
       self.write(('NICK', self.nick))
       self.write(('USER', self.user, '+iw', self.nick), self.name)
-      if hasattr(self,'internals') and self.internals.get('pingloop'):
-         self.internals['pingloop']()
 
    def handle_close(self): 
       self.close()
