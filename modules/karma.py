@@ -31,6 +31,12 @@ class KarmaDAO:
             conn.execute('insert into karma (name,score) values (?,?)', (user,score))
         conn.commit()
 
+    def get_karma(self, conn, user):
+        user=str(user)
+        score = conn.execute('select score from karma where name = ?', (user,)).fetchone()
+        score=(score and score[0]) or 0
+        return score
+
 def karma_point(phenny, input):
     """
     This rule will detect and apply karma operations.
@@ -54,17 +60,22 @@ def karma_point(phenny, input):
     f = ops.get(op, lambda x: x)
     conn = sqlite3.connect(phenny.karma_dao.db_path)
     phenny.karma_dao.update_karma(conn, user, f, 0)
-karma_point.rule = '^(\w+)(?:: )?(\+{2}|\+1|-{2}|-1)\s*(.*)$'
+karma_point.rule = '^(\w+)(?::\s*)?(\+{2}|-{2})\s*$'
 
 def karma(phenny, input):
     """
     .karma - prints all stored karma scores for various nicks to the channel
     """
-    conn = sqlite3.connect(phenny.karma_dao.db_path)
-    for entry in phenny.karma_dao.karmas(conn):
-        phenny.say('\t'.join(imap(str,entry)))
-    conn.close()
-karma.commands = ['karma']
+    if not input.group(1):
+        conn = sqlite3.connect(phenny.karma_dao.db_path)
+        for entry in phenny.karma_dao.karmas(conn):
+            phenny.say('\t'.join(imap(str,entry)))
+        conn.close()
+    else:
+        conn = sqlite3.connect(phenny.karma_dao.db_path)
+        score = phenny.karma_dao.get_karma(conn, input.group(1))
+        phenny.say("Karma for %s: %d"%(input.group(1), score))
+karma.rule = '^\.karma\s*(\w*)'
 karma.priority = 'medium'
 
 def path(self):
