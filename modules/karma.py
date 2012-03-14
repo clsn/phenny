@@ -17,8 +17,11 @@ class KarmaDAO:
     def __init__(self, path):
         self.db_path = path
 
-    def karmas(self, conn):
-        return conn.execute('select name,score from karma order by score desc')
+    def karmas(self, conn, limit=None):
+        comm='select name,score from karma order by abs(score) desc '
+        if limit and int(limit)>0:
+            comm += 'limit %d'%int(limit)
+        return conn.execute(comm)
 
     def update_karma(self, conn, user, f, default=0):
         user = str(user)
@@ -66,15 +69,22 @@ def karma(phenny, input):
     """
     .karma - prints all stored karma scores for various nicks to the channel
     """
-    if not input.group(1):
-        conn = sqlite3.connect(phenny.karma_dao.db_path)
-        for entry in phenny.karma_dao.karmas(conn):
-            phenny.say('\t'.join(imap(str,entry)))
-        conn.close()
+    who=input.group(1)
+    conn = sqlite3.connect(phenny.karma_dao.db_path)
+    if not who or (who.isdigit() and int(who)>5):
+        phenny.say("Sending you the list in private messages, "+input.nick)
+        for entry in phenny.karma_dao.karmas(conn,who):
+            # List of all is IMed to the questioner, so as not
+            # to spam the channel.
+            phenny.msg(input.nick,'\t'.join(imap(str,entry)))
+    elif who.isdigit():
+        for entry in phenny.karma_dao.karmas(conn,who):
+            phenny.say("\t".join(imap(str,entry)))
     else:
-        conn = sqlite3.connect(phenny.karma_dao.db_path)
         score = phenny.karma_dao.get_karma(conn, input.group(1))
         phenny.say("Karma for %s: %d"%(input.group(1), score))
+    conn.close()
+
 karma.rule = '^\.karma\s*(\w*)'
 karma.priority = 'medium'
 
