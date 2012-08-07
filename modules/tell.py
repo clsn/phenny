@@ -72,32 +72,37 @@ def f_remind(phenny, input):
    if not os.path.exists(phenny.tell_filename): 
       return
 
-   if len(tellee) > 20: 
-      return phenny.reply('That nickname is too long.')
-
    timenow = time.strftime('%d %b %H:%MZ', time.gmtime())
-   if not tellee in (teller.lower(), phenny.nick, 'me'): # @@
-      # @@ <deltab> and year, if necessary
-      warn = False
-      if not phenny.reminders.has_key(tellee): 
-         phenny.reminders[tellee] = [(teller, verb, timenow, msg)]
-      else: 
-         # if len(phenny.reminders[tellee]) >= maximum: 
-         #    warn = True
-         phenny.reminders[tellee].append((teller, verb, timenow, msg))
-      # @@ Stephanie's augmentation
-      response = "I'll pass that on when %s is around." % tellee_original
-      # if warn: response += (" I'll have to use a pastebin, though, so " + 
-      #                       "your message may get lost.")
-
+   whogets=[]
+   for tellee in tellee.split(','):
+      if len(tellee) > 20: 
+         phenny.say('Nickname %s is too long.'%tellee)
+         continue
+      if not tellee in (teller.lower(), phenny.nick, 'me'): # @@
+         warn = False
+         whogets.append(tellee)
+         if not phenny.reminders.has_key(tellee): 
+            phenny.reminders[tellee] = [(teller, verb, timenow, msg)]
+         else: 
+            # if len(phenny.reminders[tellee]) >= maximum: 
+            #    warn = True
+            phenny.reminders[tellee].append((teller, verb, timenow, msg))
+   if not whogets:               # Only get cute if there are no legits
       rand = random.random()
       if rand > 0.9999: response = "yeah, yeah"
       elif rand > 0.999: response = "yeah, sure, whatever"
-
-      phenny.reply(response)
    elif teller.lower() == tellee: 
       phenny.say('You can %s yourself that.' % verb)
-   else: phenny.say("Hey, I'm not as stupid as Monty you know!")
+   elif teller.lower() == phenny.nick.lower():
+      phenny.say("Hey, I'm not as stupid as Monty you know!")
+   else:
+      response="I'll pass that on when %s is around."
+      if len(whogets)>1:
+         listing=", ".join(whogets[:-1])+" or "+whogets[-1]
+         response=response%listing
+      else:
+         response=response%whogets[0]
+      phenny.reply(response)
 
    dumpReminders(phenny.tell_filename, phenny.reminders) # @@ tell
 f_remind.rule = ('$nick', ['tell', 'ask'], r'(\S+) (.*)')
